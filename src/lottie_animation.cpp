@@ -831,11 +831,15 @@ bool LottieAnimation::_load_animation(const String& path) {
         return picture->load(ap.utf8().get_data()) == tvg::Result::Success;
     };
 
-    bool loaded_ok = _try_load_path(source_path);
+    // source_path 保留资源标识作为缓存键；loaded_path 记录实际加载成功的文件路径。
+    // Android 等导出包中的 res:// 资源无法由 ThorVG 直接读取，需要先镜像到 user://。
+    String loaded_path = source_path;
+    bool loaded_ok = _try_load_path(loaded_path);
     if (!loaded_ok) {
         String mirrored = _mirror_file_to_user_cache(source_path);
         if (!mirrored.is_empty()) {
             loaded_ok = _try_load_path(mirrored);
+            if (loaded_ok) loaded_path = mirrored;
         }
     }
     if (!loaded_ok) {
@@ -874,7 +878,8 @@ bool LottieAnimation::_load_animation(const String& path) {
     
     _create_texture();
     if (render_thread_enabled) {
-        _post_load_to_worker(source_path);
+        // 后台线程同样通过原生文件 IO 加载，必须使用镜像后的路径，避免帧推进但画面空白。
+        _post_load_to_worker(loaded_path);
         _post_render_to_worker(render_size, current_frame);
     } else {
         _render_frame(); // Draw initial frame immediately
