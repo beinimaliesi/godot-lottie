@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # ThorVG Android Build Script (Linux/macOS hosts)
-# Cross-compiles ThorVG for Android arm64-v8a + x86_64 using NDK r25+.
+# Cross-compiles ThorVG for Android arm64-v8a + x86_64 using the NDK pinned in .android-ndk.json.
 #
 # Required:
 #   ANDROID_NDK_ROOT (or ANDROID_NDK_HOME) -- path to your NDK install
@@ -18,22 +18,10 @@ set -e
 
 # ---- Resolve NDK ----------------------------------------------------------
 
-if [ -z "$ANDROID_NDK_ROOT" ] && [ -n "$ANDROID_NDK_HOME" ]; then
-    ANDROID_NDK_ROOT="$ANDROID_NDK_HOME"
-fi
-
-if [ -z "$ANDROID_NDK_ROOT" ]; then
-    echo "ERROR: ANDROID_NDK_ROOT (or ANDROID_NDK_HOME) is not set."
-    echo
-    echo "Point it at your NDK install, for example:"
-    echo "  export ANDROID_NDK_ROOT=\$HOME/Android/Sdk/ndk/26.3.11579264"
-    exit 1
-fi
-
-if [ ! -d "$ANDROID_NDK_ROOT" ]; then
-    echo "ERROR: ANDROID_NDK_ROOT='$ANDROID_NDK_ROOT' is not a directory."
-    exit 1
-fi
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ANDROID_NDK_ROOT="$(python3 "$SCRIPT_DIR/scripts/android_ndk.py")"
+NDK_REVISION="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["revision"])' "$SCRIPT_DIR/.android-ndk.json")"
+echo "Using pinned NDK $NDK_REVISION: $ANDROID_NDK_ROOT"
 
 # ---- Detect host tag ------------------------------------------------------
 
@@ -137,6 +125,7 @@ EOF
             -Dtests=false \
             --backend=ninja && \
         $MESON compile -C "$BUILDDIR_NAME")
+    printf '%s\n' "$NDK_REVISION" > "$BUILDDIR/.ndk-version"
 }
 
 for abi in $ABIS; do

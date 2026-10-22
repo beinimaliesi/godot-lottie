@@ -226,10 +226,16 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Test NDK resolution and read pinned release
+        id: ndk-pin
+        run: |
+          python3 -m unittest discover -s tests -p "test_android_ndk.py"
+          python3 -c 'import json; print("release=" + json.load(open(".android-ndk.json"))["release"])' >> "$GITHUB_OUTPUT"
+
       - uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
-          ndk-version: r26d
+          ndk-version: ${{ steps.ndk-pin.outputs.release }}
 
       - name: Install build deps
         run: |

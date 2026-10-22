@@ -1,6 +1,6 @@
 @echo off
 REM ThorVG Android Build Script (Windows host)
-REM Cross-compiles ThorVG for Android arm64-v8a + x86_64 using NDK r25+.
+REM Cross-compiles ThorVG for Android arm64-v8a + x86_64 using the NDK pinned in .android-ndk.json.
 REM
 REM Required:
 REM   ANDROID_NDK_ROOT (or ANDROID_NDK_HOME) -- path to your NDK install
@@ -17,20 +17,11 @@ setlocal enableextensions
 
 REM ---- Resolve NDK -------------------------------------------------------
 
-if "%ANDROID_NDK_ROOT%"=="" if not "%ANDROID_NDK_HOME%"=="" set "ANDROID_NDK_ROOT=%ANDROID_NDK_HOME%"
-
-if "%ANDROID_NDK_ROOT%"=="" (
-    echo ERROR: ANDROID_NDK_ROOT ^(or ANDROID_NDK_HOME^) is not set.
-    echo.
-    echo Point it at your NDK install, for example:
-    echo   set "ANDROID_NDK_ROOT=C:\Android\sdk\ndk\26.3.11579264"
-    exit /b 1
-)
-
-if not exist "%ANDROID_NDK_ROOT%" (
-    echo ERROR: ANDROID_NDK_ROOT="%ANDROID_NDK_ROOT%" does not exist.
-    exit /b 1
-)
+python "%~dp0scripts\android_ndk.py" >nul
+if errorlevel 1 exit /b 1
+for /f "delims=" %%N in ('python "%~dp0scripts\android_ndk.py"') do set "ANDROID_NDK_ROOT=%%N"
+for /f "delims=" %%V in ('python -c "import json; print(json.load(open(r'%~dp0.android-ndk.json'))['revision'])"') do set "NDK_REVISION=%%V"
+echo Using pinned NDK %NDK_REVISION%: %ANDROID_NDK_ROOT%
 
 set "HOST_TAG=windows-x86_64"
 if "%API%"=="" set "API=24"
@@ -180,5 +171,6 @@ if errorlevel 1 (
     exit /b 1
 )
 popd
+> "%BUILDDIR%\.ndk-version" echo %NDK_REVISION%
 
 exit /b 0

@@ -285,53 +285,54 @@ Replace `-` with a Developer ID for notarisation-ready signing.
 
 ## 4. Android — ✅
 
-Verified end-to-end with **NDK r26.3.11579264** on a Windows host. All four
-target variants (`arm64`, `x86_64` × `template_debug`, `template_release`)
-build cleanly and contain the `LottieAnimation3D` symbols.
+Android NDK is pinned to **r28b / 28.1.13356709** in `.android-ndk.json`.
+Both ThorVG and the extension validate the installed `Pkg.Revision` against
+this file. CI reads the release from the same file. Changing only an environment
+variable or SCons `ndk_version` cannot silently select another NDK version.
 
-Android is always cross-compiled. You need:
-- One ThorVG static library per ABI (`libthorvg-1.a`)
-- One extension `.so` per ABI per target
+Android is always cross-compiled. Build ThorVG and the extension with the same
+NDK. Existing binaries built with another version must be rebuilt; changing
+the pin does not update shipped binaries automatically.
 
 ### 4.1 Install Android NDK
 
-Get **Android NDK r25c or newer** (godot-cpp 4.3+ requires it):
-
-- Via Android Studio: SDK Manager → SDK Tools → NDK (Side by side)
-- Or standalone: https://developer.android.com/ndk/downloads
-
-Set the environment variable to your NDK path:
+Install the pinned revision with Android Studio (SDK Tools → NDK → Show Package
+Details), or with the SDK command-line tools:
 
 ```bash
-# Linux/macOS
-export ANDROID_NDK_ROOT="$HOME/Android/Sdk/ndk/26.3.11579264"
+sdkmanager "ndk;28.1.13356709"
 
-# Windows (cmd / batch)
-set "ANDROID_NDK_ROOT=C:\Android\sdk\ndk\26.3.11579264"
+# Linux/macOS: adjust this SDK path for your machine.
+export ANDROID_HOME="$HOME/Android/Sdk"
+export ANDROID_NDK_ROOT="$ANDROID_HOME/ndk/28.1.13356709"
+./build_thorvg_android.sh
+scons platform=android target=template_debug arch=arm64
+scons platform=android target=template_release arch=arm64
 ```
 
-### 4.2 Edit the committed cross-files for your machine
+Windows (cmd):
 
-The repo ships two meson cross-files (they live at the repo root, not inside
-the `thirdparty/thorvg` submodule):
-
-- `thorvg-crossfiles/cross-android-arm64.ini`
-- `thorvg-crossfiles/cross-android-x86_64.ini`
-
-They are pre-configured for **NDK r26.3 on a Windows host**. Open each one and
-fix the four `[binaries]` paths to match your installation:
-
-```ini
-[binaries]
-c = '<NDK_ROOT>/toolchains/llvm/prebuilt/<HOST_TAG>/bin/<TARGET>-linux-android24-clang<.cmd>'
-cpp = '...<TARGET>-linux-android24-clang++<.cmd>'
-ar = '<NDK_ROOT>/toolchains/llvm/prebuilt/<HOST_TAG>/bin/llvm-ar<.exe>'
-strip = '<NDK_ROOT>/toolchains/llvm/prebuilt/<HOST_TAG>/bin/llvm-strip<.exe>'
+```bat
+set "ANDROID_HOME=C:\Android\sdk"
+set "ANDROID_NDK_ROOT=%ANDROID_HOME%\ndk\28.1.13356709"
+call build_thorvg_android.bat
+scons platform=android target=template_debug arch=arm64
+scons platform=android target=template_release arch=arm64
 ```
 
-- `<HOST_TAG>` = `windows-x86_64` / `linux-x86_64` / `darwin-x86_64`
-- Drop the `.cmd` / `.exe` suffixes on Linux and macOS hosts.
-- `24` is the API level (Godot 4.3+ Android minimum).
+Resolution order is `ANDROID_NDK_ROOT`, `ANDROID_NDK_HOME`, then the pinned
+revision under `ANDROID_HOME` or `ANDROID_SDK_ROOT`. An explicit SCons
+`ANDROID_HOME=...` selects the pinned revision under that SDK. A mismatched
+explicit NDK path causes an error instead of silently falling back.
+ThorVG writes `.ndk-version` after a successful build; SCons refuses archives
+without a matching marker. Rebuild ThorVG after adopting this configuration.
+
+### 4.2 Generated cross-files
+
+Use the helper scripts below. They validate the pinned NDK, generate a fresh
+cross-file per ABI, and write the `.ndk-version` marker after compilation.
+The committed `thorvg-crossfiles/cross-android-*.ini` files are historical
+examples with machine-specific NDK paths; they are not used by these scripts.
 
 ### 4.3 Build ThorVG for both ABIs
 
@@ -353,7 +354,7 @@ Environment knobs:
 
 | Var | Default | Meaning |
 |---|---|---|
-| `ANDROID_NDK_ROOT` | *(required)* | Path to the NDK install, e.g. `C:\Android\sdk\ndk\26.3.11579264` |
+| `ANDROID_NDK_ROOT` | SDK fallback if unset | Path to the NDK install, e.g. `C:\Android\sdk\ndk\28.1.13356709` |
 | `API` | `24` | Android API level (Godot 4.3+ minimum) |
 | `ABIS` | `"arm64 x86_64"` | Space-separated ABI list to build |
 
@@ -367,37 +368,13 @@ ABIS=arm64 ./build_thorvg_android.sh        # Linux/macOS
 set "ABIS=arm64" & build_thorvg_android.bat  REM Windows
 ```
 
-Each `libthorvg-1.a` is ~2 MB and lands at
+Each `libthorvg-1.a` lands at
 `thirdparty/thorvg/builddir_android_<abi>/src/libthorvg-1.a`.
 
-> **Important — Android requires `-Dthreads=false`.** ThorVG's threaded task
-> scheduler interacts badly with the Android pthread runtime in some
-> versions and causes hangs / crashes when the extension is loaded inside a
-> Godot Android app. The helper scripts already set this; if you hand-roll
-> the build, make sure to use `-Dthreads=false`. ThorVG then renders
-> single-threaded but stably — performance is still good for typical
-> Lottie sizes thanks to SIMD.
-
-**Hand-rolling the build** (if you want to control more flags) is still an
-option — the scripts are thin wrappers around:
-
-```bash
-cd thirdparty/thorvg
-meson setup builddir_android_arm64 \
-  --cross-file ../../thorvg-crossfiles/cross-android-arm64.ini \
-  -Dbuildtype=release -Doptimization=3 -Db_ndebug=true \
-  -Ddefault_library=static \
-  -Dsimd=true -Dthreads=false -Dpartial=true \
-  -Dengines=sw -Dloaders=lottie,png -Dstatic=true -Dextra=lottie_exp,openmp -Dbindings=capi \
-  -Dtests=false \
-  --backend=ninja
-meson compile -C builddir_android_arm64
-```
-
-The committed `thorvg-crossfiles/cross-android-*.ini` files are pre-populated
-with this machine's NDK path as a reference; the helper scripts generate
-their own fresh cross-files inside each build directory based on the current
-env vars, so the committed templates are only needed for hand-rolled builds.
+The Linux/macOS helper enables ThorVG's task scheduler (`threads=true`);
+the Windows helper retains `threads=false`. Both enable OpenMP. If you need
+to customize Meson options, edit the helper rather than using an unvalidated
+manual archive. SCons requires the successful build's `.ndk-version` marker.
 
 ### 4.4 Build the extension for both ABIs
 
@@ -817,7 +794,7 @@ Build time is roughly the slowest one (~10–20 minutes), not the sum.
 | Linux x86_64 | `ubuntu-latest` | Installs `build-essential`/`meson`/`ninja`/`scons` via apt+pip, runs `./build_thorvg.sh`, then SCons |
 | macOS | `macos-latest` (Apple Silicon) | `brew install meson ninja scons`, runs `./build_thorvg_macos_universal.sh`, then SCons with `arch=universal` and verifies both slices |
 | iOS | `macos-latest` | Same brew installs, runs `./build_thorvg_ios.sh` then `./build_extension_ios.sh` to produce `.xcframework` per target |
-| Android | `ubuntu-latest` + `nttld/setup-ndk@v1` (NDK r26d) | Cross-compiles ThorVG + extension for each ticked ABI |
+| Android | `ubuntu-latest` + `nttld/setup-ndk@v1` (NDK r28b) | Cross-compiles ThorVG + extension for each ticked ABI |
 
 ### Limitations / known gaps
 

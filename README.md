@@ -167,6 +167,14 @@ scons platform=macos target=template_release arch=universal macos_deployment_tar
 
 > **Note**: On Windows, the build automatically copies `thorvg-1.dll` to the addon's bin directory. Linux and macOS use static linking and don't require runtime libraries.
 
+### Android NDK version
+
+Android builds require **NDK r28b (`28.1.13356709`)**, pinned in
+`.android-ndk.json` for both local scripts and CI. Install it with
+`sdkmanager "ndk;28.1.13356709"`, set `ANDROID_NDK_ROOT` to that installation,
+then rebuild ThorVG before building the extension. Both build steps reject
+mismatched versions. See [BUILDING.md](BUILDING.md#41-install-android-ndk).
+
 ### iOS
 
 On macOS with full Xcode, Meson, Ninja, and SCons installed:

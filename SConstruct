@@ -9,6 +9,25 @@ import os
 import sys
 import shutil
 
+# 统一 ThorVG 与 godot-cpp 的 NDK，避免 ANDROID_HOME 覆盖 CI 指定的路径。
+if ARGUMENTS.get("platform") == "android":
+    import runpy
+
+    ndk_tools = runpy.run_path("scripts/android_ndk.py")
+    ndk_revision = ndk_tools["pinned_ndk"]()["revision"]
+    if ARGUMENTS.get("ndk_version", ndk_revision) != ndk_revision:
+        print("NDK version must match .android-ndk.json: " + ndk_revision)
+        Exit(1)
+    try:
+        ndk_root = ndk_tools["resolve_ndk"](sdk=ARGUMENTS.get("ANDROID_HOME"))
+    except RuntimeError as error:
+        print(error)
+        Exit(1)
+    ARGUMENTS["ndk_version"] = ndk_revision
+    ARGUMENTS["ANDROID_HOME"] = ""
+    os.environ["ANDROID_NDK_ROOT"] = ndk_root
+    print("Using pinned NDK {}: {}".format(ndk_revision, ndk_root))
+
 env = SConscript("thirdparty/godot-cpp/SConstruct", {"api_version": "4.7"})
 
 # ThorVG software-rendering loops use OpenMP on Linux.
@@ -52,6 +71,11 @@ elif env["platform"] == "macos" and env["arch"] == "universal":
 elif env["platform"] == "android":
     arch = env.get("arch", "arm64")
     thorvg_lib_dir = os.path.join("thirdparty", "thorvg", "builddir_android_" + arch, "src")
+    # 已有静态库也必须重编，不能混用 r28c 等其他版本的 ThorVG 产物。
+    ndk_stamp = os.path.join(thorvg_lib_dir, "..", ".ndk-version")
+    if not os.path.isfile(ndk_stamp) or open(ndk_stamp).read().strip() != ndk_revision:
+        print("Rebuild ThorVG with the pinned NDK: run build_thorvg_android.sh or .bat")
+        Exit(1)
 elif env["platform"] == "ios":
     # iOS has device (arm64) and simulator (arm64 / x86_64) builds.
     # build_thorvg_ios.sh produces:
