@@ -240,52 +240,37 @@ brew install meson ninja python scons # via Homebrew
 
 ### 3.2 Build ThorVG (Universal)
 
-The shipped `build_thorvg.sh` detects ARM Mac and disables `-Dthreads` there
-(ARM macOS + ThorVG threading had compat issues). For a Universal `.a` you
-can either run the script twice (once per arch with a meson cross-file) and
-`lipo` them together, or just build for the host arch you're on:
+Build both architectures on either an Apple Silicon or Intel Mac:
 
 ```bash
-./build_thorvg.sh   # produces libthorvg-1.a for the host arch (x86_64 or arm64)
+./build_thorvg_macos_universal.sh
 ```
 
-For a true Universal binary that runs on both Intel and Apple Silicon:
+The script cross-compiles arm64 and x86_64 separately, then combines them
+into `thirdparty/thorvg/builddir_macos-universal/src/libthorvg-1.a`.
+SCons selects this archive for `arch=universal`; native builds retain their
+separate `builddir/` output. PNG and Lottie expression support are enabled.
+ThorVG's task scheduler is disabled for arm64 and enabled for x86_64,
+matching the existing native build settings.
 
-```bash
-# arm64 build
-cd thirdparty/thorvg
-meson setup builddir_arm64 \
-  --cross-file <path-to-arm64-cross.ini> \
-  -Dbuildtype=release -Ddefault_library=static -Dsimd=true -Dthreads=false \
-  -Dpartial=true -Dengines=sw -Dloaders=lottie,png -Dstatic=true -Dextra=lottie_exp -Dbindings=capi
-meson compile -C builddir_arm64
-
-# x86_64 build
-meson setup builddir_x86_64 \
-  --cross-file <path-to-x86_64-cross.ini> \
-  -Dbuildtype=release -Ddefault_library=static -Dsimd=true -Dthreads=true \
-  -Dpartial=true -Dengines=sw -Dloaders=lottie,png -Dstatic=true -Dextra=lottie_exp -Dbindings=capi
-meson compile -C builddir_x86_64
-
-# Combine
-lipo -create builddir_arm64/src/libthorvg-1.a builddir_x86_64/src/libthorvg-1.a \
-     -output builddir/src/libthorvg-1.a
-```
+The minimum macOS version defaults to 11.0 for both architectures. To change
+it, set `MIN_MACOS` for this script and pass the same value as
+`macos_deployment_target` to SCons. `JOBS` controls ThorVG build parallelism.
 
 ### 3.3 Build the extension
 
 ```bash
-python3 -m SCons platform=macos target=template_debug   arch=universal -j$(sysctl -n hw.ncpu)
-python3 -m SCons platform=macos target=template_release arch=universal -j$(sysctl -n hw.ncpu)
+python3 -m SCons platform=macos target=template_debug   arch=universal macos_deployment_target=11.0 -j$(sysctl -n hw.ncpu)
+python3 -m SCons platform=macos target=template_release arch=universal macos_deployment_target=11.0 -j$(sysctl -n hw.ncpu)
 ```
 
-Output is a **framework bundle** (see SConstruct line 67–73):
+Output is a **framework bundle** containing a Universal binary:
 
 - `demo/addons/godot_lottie/bin/macos/libgodot_lottie.macos.template_debug.framework/`
 - `demo/addons/godot_lottie/bin/macos/libgodot_lottie.macos.template_release.framework/`
 
-Each framework contains the binary plus an `Info.plist`. The `.gdextension`
-declares those bundle paths and Godot loads them transparently.
+The `.gdextension` declares these bundle paths. Verify each binary with
+`lipo -archs`; both `arm64` and `x86_64` must be listed.
 
 ### 3.4 Code-signing (optional but recommended for distribution)
 
@@ -800,7 +785,7 @@ to build via checkboxes; jobs you don't tick don't run.
 4. Tick the platform checkboxes you want:
    - `Windows x86_64 (.dll)`
    - `Linux x86_64 (.so)`
-   - `macOS (.framework, host arch only)`
+   - `macOS (.framework, Universal arm64 + x86_64)`
    - `iOS device + simulator (.xcframework)`
    - `Android arm64-v8a (.so)`
    - `Android x86_64 (.so)`
@@ -830,15 +815,12 @@ Build time is roughly the slowest one (~10–20 minutes), not the sum.
 |---|---|---|
 | Windows x86_64 | `windows-latest` | Sets up MSVC via `ilammy/msvc-dev-cmd`, runs `build_thorvg.bat` (static), then SCons |
 | Linux x86_64 | `ubuntu-latest` | Installs `build-essential`/`meson`/`ninja`/`scons` via apt+pip, runs `./build_thorvg.sh`, then SCons |
-| macOS | `macos-latest` (Apple Silicon) | `brew install meson ninja scons`, runs `./build_thorvg.sh`, then SCons for host arch (arm64) |
+| macOS | `macos-latest` (Apple Silicon) | `brew install meson ninja scons`, runs `./build_thorvg_macos_universal.sh`, then SCons with `arch=universal` and verifies both slices |
 | iOS | `macos-latest` | Same brew installs, runs `./build_thorvg_ios.sh` then `./build_extension_ios.sh` to produce `.xcframework` per target |
 | Android | `ubuntu-latest` + `nttld/setup-ndk@v1` (NDK r26d) | Cross-compiles ThorVG + extension for each ticked ABI |
 
 ### Limitations / known gaps
 
-- **macOS** job builds only for the runner's arch (currently arm64, since
-  `macos-latest` is Apple Silicon). For Universal macOS frameworks (arm64
-  + x86_64), you still need to follow §3 manually for now.
 - **iOS** code signing is intentionally NOT done in CI — the produced
   `.xcframework` is unsigned. Godot's iOS exporter generates an Xcode
   project that gets signed at the user's `xcodebuild` step.

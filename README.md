@@ -159,9 +159,10 @@ python -m SCons platform=windows target=template_release
 python -m SCons platform=linux target=template_debug
 python -m SCons platform=linux target=template_release
 
-# macOS
-python -m SCons platform=macos target=template_debug
-python -m SCons platform=macos target=template_release
+# macOS Universal (Apple Silicon + Intel, macOS 11.0+)
+./build_thorvg_macos_universal.sh
+scons platform=macos target=template_debug arch=universal macos_deployment_target=11.0
+scons platform=macos target=template_release arch=universal macos_deployment_target=11.0
 ```
 
 > **Note**: On Windows, the build automatically copies `thorvg-1.dll` to the addon's bin directory. Linux and macOS use static linking and don't require runtime libraries.

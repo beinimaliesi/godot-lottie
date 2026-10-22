@@ -15,7 +15,7 @@ on:
         type: boolean
         default: false
       macos:
-        description: 'macOS (.framework, host arch only -- arm64 on macos-latest)'
+        description: 'macOS Universal (.framework, arm64 + x86_64)'
         type: boolean
         default: false
       ios:
@@ -168,24 +168,17 @@ jobs:
       - name: Install build deps
         run: brew install meson ninja scons
 
-      - name: Build ThorVG (static, host arch)
-        run: |
-          chmod +x build_thorvg.sh
-          ./build_thorvg.sh
+      - name: Build ThorVG (static, Universal)
+        run: ./build_thorvg_macos_universal.sh
 
-      - name: Build extension (host arch only -- not Universal)
-        # NOTE: this builds for the runner's arch (arm64). For Universal
-        # macOS support, both arm64 and x86_64 ThorVG slices need to be
-        # built and lipo'd; see BUILDING.md §3 for the manual recipe.
+      - name: Build and verify Universal extension
         run: |
-          HOST_ARCH=$(uname -m)
-          if [ "$HOST_ARCH" = "arm64" ]; then SCONS_ARCH=arm64; else SCONS_ARCH=x86_64; fi
-          if [ "${{ inputs.targets }}" != "release_only" ]; then
-            scons platform=macos target=template_debug arch=$SCONS_ARCH -j$(sysctl -n hw.ncpu)
-          fi
-          if [ "${{ inputs.targets }}" != "debug_only" ]; then
-            scons platform=macos target=template_release arch=$SCONS_ARCH -j$(sysctl -n hw.ncpu)
-          fi
+          for target in template_debug template_release; do
+            if [ "${{ inputs.targets }}" = "release_only" ] && [ "$target" = template_debug ]; then continue; fi
+            if [ "${{ inputs.targets }}" = "debug_only" ] && [ "$target" = template_release ]; then continue; fi
+            scons platform=macos target="$target" arch=universal macos_deployment_target=11.0 -j$(sysctl -n hw.ncpu)
+            lipo "demo/addons/godot_lottie/bin/macos/libgodot_lottie.macos.$target.framework/libgodot_lottie.macos.$target" -verify_arch arm64 x86_64
+          done
 
       - uses: actions/upload-artifact@v4
         with:

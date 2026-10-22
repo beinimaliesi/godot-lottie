@@ -44,6 +44,11 @@ if env["platform"] == "android":
 # Native desktop builds use the canonical `builddir`.
 if env["platform"] == "web":
     thorvg_lib_dir = os.path.join("thirdparty", "thorvg", "build_wasm", "src")
+elif env["platform"] == "macos" and env["arch"] == "universal":
+    thorvg_lib_dir = os.path.join("thirdparty", "thorvg", "builddir_macos-universal", "src")
+    if not os.path.isfile(os.path.join(thorvg_lib_dir, "libthorvg-1.a")):
+        print("Missing Universal ThorVG library. Run ./build_thorvg_macos_universal.sh first.")
+        Exit(1)
 elif env["platform"] == "android":
     arch = env.get("arch", "arm64")
     thorvg_lib_dir = os.path.join("thirdparty", "thorvg", "builddir_android_" + arch, "src")
