@@ -92,7 +92,7 @@ If you prefer to build ThorVG manually with custom options.
 **Windows:**
 ```bash
 cd thirdparty/thorvg
-python -m meson setup builddir -Dbuildtype=release -Dsimd=true -Dthreads=true -Dloaders=lottie -Dextra=lottie_exp,openmp -Dbindings=capi
+python -m meson setup builddir -Dbuildtype=release -Dsimd=true -Dthreads=true -Dloaders=lottie,png -Dstatic=true -Dextra=lottie_exp,openmp -Dbindings=capi
 python -m meson compile -C builddir
 cd ../..
 ```
@@ -102,7 +102,7 @@ cd ../..
 cd thirdparty/thorvg
 THORVG_EXTRA=lottie_exp,openmp
 [ "$(uname)" = Darwin ] && THORVG_EXTRA=lottie_exp
-python3 -m meson setup builddir -Dbuildtype=release -Ddefault_library=static -Dsimd=true -Dthreads=true -Dloaders=lottie -Dextra="$THORVG_EXTRA" -Dbindings=capi
+python3 -m meson setup builddir -Dbuildtype=release -Ddefault_library=static -Dsimd=true -Dthreads=true -Dloaders=lottie,png -Dstatic=true -Dextra="$THORVG_EXTRA" -Dbindings=capi
 python3 -m meson compile -C builddir
 cd ../..
 ```
@@ -113,6 +113,7 @@ The automated scripts already include optimal settings. For manual builds, you c
 
 - `-Dengines=sw` — Software renderer only (already enabled)
 - `-Dbindings=capi` — Build C API bindings
+- `-Dloaders=lottie,png -Dstatic=true` — Enable PNG assets using bundled LodePNG, without external libpng/zlib dependencies
 - `-Dextra=lottie_exp` — Lottie expressions without OpenMP (macOS, iOS, Web)
 - `-Dextra=lottie_exp,openmp` — Lottie expressions with OpenMP (Linux, Windows/MSVC, Android/NDK)
 - `-Ddefault_library=static` — Static library build (all build scripts)
@@ -136,7 +137,7 @@ python3 -m meson setup builddir \
     -Ddefault_library=static \
     -Dsimd=true \
     -Dthreads=true \
-    -Dloaders=lottie \
+    -Dloaders=lottie,png -Dstatic=true \
     -Dextra=lottie_exp -Dbindings=capi
 
 # Step 2: Compile the library
@@ -174,7 +175,7 @@ The build system configures ThorVG with the following optimizations:
 - **SIMD**: Automatic detection and enablement of CPU vectorization
 - **Multi-threading**: Task scheduler with configurable worker threads
 - **Partial rendering**: Smart rendering optimizations
-- **Lottie loader only**: Minimal build excluding unnecessary formats
+- **Lottie and PNG loaders**: Includes the bundled LodePNG decoder for PNG image assets
 - **Release mode**: Maximum compiler optimizations
 
 ### Rendering Pipeline

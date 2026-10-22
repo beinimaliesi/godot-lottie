@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # ThorVG Build Script for Linux/macOS
-# Builds optimized ThorVG with multi-threading, SIMD, and Lottie-only support
+# Builds optimized ThorVG with multi-threading, SIMD, and Lottie and PNG support
 
 set -e  # Exit on any error
 
 echo "========================================"
 echo "Building optimized ThorVG library"
 echo "Platform: $(uname -s) $(uname -m)"
-echo "Target: Lottie animations only"
+echo "Target: Lottie animations with PNG assets"
 echo "Optimizations: Multi-threading, SIMD, Partial rendering"
 echo "========================================"
 echo
@@ -90,7 +90,7 @@ meson setup builddir \
     $THREADS_OPTION \
     -Dpartial=true \
     -Dengines=sw \
-    -Dloaders=lottie \
+    -Dloaders=lottie,png -Dstatic=true \
     $EXTRA_OPTION \
     -Dbindings=capi \
     -Dtests=false \
@@ -125,7 +125,7 @@ echo "Enabled optimizations:"
 echo "  ✓ Multi-threading: Task scheduler with $CORES workers"
 echo "  ✓ SIMD instructions: CPU vectorization enabled"
 echo "  ✓ Partial rendering: Smart update optimizations"  
-echo "  ✓ Lottie loader: JSON animation support only"
+echo "  ✓ Lottie and PNG loaders: JSON animations and PNG assets"
 echo "  ✓ Release mode: Maximum compiler optimizations (-O3)"
 echo "  ✓ Static linking: No runtime dependencies"
 echo "========================================"

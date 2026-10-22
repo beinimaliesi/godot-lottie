@@ -90,7 +90,7 @@ if exist builddir rmdir /s /q builddir
 meson setup builddir ^
   -Dbuildtype=release -Doptimization=3 -Db_ndebug=true ^
   -Dsimd=true -Dthreads=true -Dpartial=true ^
-  -Dengines=sw -Dloaders=lottie -Dextra=lottie_exp,openmp -Dbindings=capi ^
+  -Dengines=sw -Dloaders=lottie,png -Dstatic=true -Dextra=lottie_exp,openmp -Dbindings=capi ^
   --backend=ninja
 meson compile -C builddir
 ```
@@ -208,7 +208,7 @@ meson setup builddir_arm64 \
   --cross-file cross-arm64.ini \
   -Dbuildtype=release -Ddefault_library=static \
   -Dsimd=true -Dthreads=true -Dpartial=true \
-  -Dengines=sw -Dloaders=lottie -Dextra=lottie_exp,openmp -Dbindings=capi
+  -Dengines=sw -Dloaders=lottie,png -Dstatic=true -Dextra=lottie_exp,openmp -Dbindings=capi
 meson compile -C builddir_arm64
 ```
 
@@ -254,14 +254,14 @@ cd thirdparty/thorvg
 meson setup builddir_arm64 \
   --cross-file <path-to-arm64-cross.ini> \
   -Dbuildtype=release -Ddefault_library=static -Dsimd=true -Dthreads=false \
-  -Dpartial=true -Dengines=sw -Dloaders=lottie -Dextra=lottie_exp -Dbindings=capi
+  -Dpartial=true -Dengines=sw -Dloaders=lottie,png -Dstatic=true -Dextra=lottie_exp -Dbindings=capi
 meson compile -C builddir_arm64
 
 # x86_64 build
 meson setup builddir_x86_64 \
   --cross-file <path-to-x86_64-cross.ini> \
   -Dbuildtype=release -Ddefault_library=static -Dsimd=true -Dthreads=true \
-  -Dpartial=true -Dengines=sw -Dloaders=lottie -Dextra=lottie_exp -Dbindings=capi
+  -Dpartial=true -Dengines=sw -Dloaders=lottie,png -Dstatic=true -Dextra=lottie_exp -Dbindings=capi
 meson compile -C builddir_x86_64
 
 # Combine
@@ -400,7 +400,7 @@ meson setup builddir_android_arm64 \
   -Dbuildtype=release -Doptimization=3 -Db_ndebug=true \
   -Ddefault_library=static \
   -Dsimd=true -Dthreads=false -Dpartial=true \
-  -Dengines=sw -Dloaders=lottie -Dextra=lottie_exp,openmp -Dbindings=capi \
+  -Dengines=sw -Dloaders=lottie,png -Dstatic=true -Dextra=lottie_exp,openmp -Dbindings=capi \
   -Dtests=false \
   --backend=ninja
 meson compile -C builddir_android_arm64
@@ -693,7 +693,7 @@ meson setup build_wasm \
   --cross-file cross-emscripten.ini \
   -Dbuildtype=release -Ddefault_library=static -Db_ndebug=true \
   -Dsimd=false -Dthreads=false -Dpartial=true \
-  -Dengines=sw -Dloaders=lottie -Dextra=lottie_exp -Dbindings=capi
+  -Dengines=sw -Dloaders=lottie,png -Dstatic=true -Dextra=lottie_exp -Dbindings=capi
 meson compile -C build_wasm
 ```
 

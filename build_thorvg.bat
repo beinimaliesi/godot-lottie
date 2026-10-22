@@ -1,10 +1,10 @@
 @echo off
 REM ThorVG Build Script for Windows
-REM Builds optimized ThorVG with multi-threading, SIMD, and Lottie-only support
+REM Builds optimized ThorVG with multi-threading, SIMD, and Lottie and PNG support
 
 echo ========================================
 echo Building optimized ThorVG library
-echo Target: Lottie animations only
+echo Target: Lottie animations with PNG assets
 echo Optimizations: Multi-threading, SIMD, Partial rendering
 echo ========================================
 echo.
@@ -67,7 +67,7 @@ meson setup builddir ^
   -Dthreads=true ^
   -Dpartial=true ^
   -Dengines=sw ^
-  -Dloaders=lottie ^
+  -Dloaders=lottie,png -Dstatic=true ^
   -Dextra=lottie_exp,openmp -Dbindings=capi ^
   -Dcpp_args="-DTHORVG_THREAD_SUPPORT" ^
   --backend=ninja ^
@@ -101,7 +101,7 @@ echo Enabled optimizations:
 echo   - Multi-threading: Task scheduler with %CORES% workers
 echo   - SIMD instructions: CPU vectorization enabled
 echo   - Partial rendering: Smart update optimizations
-echo   - Lottie loader: JSON animation support only
+echo   - Lottie and PNG loaders: JSON animations and PNG assets
 echo   - Release mode: Maximum compiler optimizations
 echo ========================================
 

@@ -167,7 +167,7 @@ pushd "%THORVG_DIR%"
     -Dbuildtype=release -Doptimization=3 -Db_ndebug=true ^
     -Ddefault_library=static ^
     -Dsimd=true -Dthreads=false -Dpartial=true ^
-    -Dengines=sw -Dloaders=lottie -Dextra=lottie_exp,openmp -Dbindings=capi ^
+    -Dengines=sw -Dloaders=lottie,png -Dstatic=true -Dextra=lottie_exp,openmp -Dbindings=capi ^
     -Dtests=false ^
     --backend=ninja
 if errorlevel 1 (
