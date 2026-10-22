@@ -14,7 +14,7 @@ config/name="Thorvg Godot"
 config/description="Demo project for Godot Lottie ThorVG integration"
 config/version="1.0.0"
 run/main_scene="uid://dcryhgllao55i"
-config/features=PackedStringArray("4.6", "Forward Plus")
+config/features=PackedStringArray("4.7", "Forward Plus")
 
 [display]
 

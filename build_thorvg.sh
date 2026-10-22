@@ -70,7 +70,15 @@ if [ "$(uname)" == "Darwin" ] && [ "$(uname -m)" == "arm64" ]; then
     echo "ARM Mac detected: Setting threads=false"
 else
     THREADS_OPTION="-Dthreads=true"
-    echo "Non-ARM platform: Setting threads=true (OpenMP enabled)"
+    echo "Non-ARM platform: Setting threads=true (task scheduler enabled)"
+fi
+
+# Apple Clang has no bundled OpenMP runtime; Linux keeps OpenMP support.
+# The task scheduler (threads) is configured independently above.
+if [ "$(uname)" == "Darwin" ]; then
+    EXTRA_OPTION="-Dextra=lottie_exp"
+else
+    EXTRA_OPTION="-Dextra=lottie_exp,openmp"
 fi
 
 meson setup builddir \
@@ -83,8 +91,8 @@ meson setup builddir \
     -Dpartial=true \
     -Dengines=sw \
     -Dloaders=lottie \
+    $EXTRA_OPTION \
     -Dbindings=capi \
-    -Dexamples=false \
     -Dtests=false \
     --backend=ninja \
     --wipe
@@ -111,7 +119,7 @@ echo "========================================"
 echo "ThorVG build completed successfully!"
 echo
 echo "Output location: thirdparty/thorvg/builddir/src/"
-echo "Library file: libthorvg.a (static library)"
+echo "Library file: libthorvg-1.a (static library)"
 echo
 echo "Enabled optimizations:"
 echo "  ✓ Multi-threading: Task scheduler with $CORES workers"

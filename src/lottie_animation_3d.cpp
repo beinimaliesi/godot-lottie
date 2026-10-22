@@ -62,7 +62,7 @@ void LottieAnimation3D::_bind_methods() {
     ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "render_size"), "set_render_size", "get_render_size");
 
     ADD_SIGNAL(MethodInfo("animation_finished"));
-    ADD_SIGNAL(MethodInfo("frame_changed", PropertyInfo(Variant::FLOAT, "frame")));
+    ADD_SIGNAL(MethodInfo("lottie_frame_changed", PropertyInfo(Variant::FLOAT, "frame")));
     ADD_SIGNAL(MethodInfo("animation_loaded", PropertyInfo(Variant::BOOL, "success")));
 }
 
@@ -268,8 +268,8 @@ bool LottieAnimation3D::_load_animation(const String &path) {
 
     _apply_picture_transform_to_fit();
 
-    if (canvas->push(picture) != tvg::Result::Success) {
-        UtilityFunctions::printerr("LottieAnimation3D: Failed to push picture to canvas");
+    if (canvas->add(picture) != tvg::Result::Success) {
+        UtilityFunctions::printerr("LottieAnimation3D: Failed to add picture to canvas");
         animation = nullptr;
         picture = nullptr;
         emit_signal("animation_loaded", false);
@@ -330,7 +330,7 @@ void LottieAnimation3D::_update_animation(double delta) {
     }
 
     if ((int)prev_frame != (int)current_frame) {
-        emit_signal("frame_changed", current_frame);
+        emit_signal("lottie_frame_changed", current_frame);
     }
 }
 

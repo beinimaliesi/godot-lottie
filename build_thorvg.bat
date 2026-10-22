@@ -50,10 +50,8 @@ REM Configure build with optimal settings for Lottie rendering
 echo Configuring ThorVG build with optimizations...
 REM -Ddefault_library=static so the extension .dll links ThorVG into itself
 REM instead of requiring thorvg-1.dll alongside. This also drops the
-REM transitive VCRUNTIME140_1.dll / MSVCP140.dll / VCOMP140.DLL dependencies
-REM that thorvg-1.dll otherwise brings in -- which is what made the
-REM extension fail to load in older Godot editors (e.g. 4.4.1) that ship
-REM an older bundled MSVC runtime.
+REM separate ThorVG DLL dependency. OpenMP remains enabled through MSVC;
+REM its runtime dependency must still be available on the target machine.
 REM
 REM -Db_vscrt=mt forces ThorVG to use the static C runtime (/MT) so its
 REM objects can be linked into the extension .dll, which godot-cpp also
@@ -70,8 +68,7 @@ meson setup builddir ^
   -Dpartial=true ^
   -Dengines=sw ^
   -Dloaders=lottie ^
-  -Dbindings=capi ^
-  -Dexamples=false ^
+  -Dextra=lottie_exp,openmp -Dbindings=capi ^
   -Dcpp_args="-DTHORVG_THREAD_SUPPORT" ^
   --backend=ninja ^
   --wipe
@@ -98,7 +95,7 @@ echo ========================================
 echo ThorVG build completed successfully
 echo.
 echo Output location: thirdparty\thorvg\builddir\src\
-echo Library file: thorvg.lib (static library, linked into the extension .dll)
+echo Library file: thorvg-1.lib (static library, linked into the extension .dll)
 echo.
 echo Enabled optimizations:
 echo   - Multi-threading: Task scheduler with %CORES% workers

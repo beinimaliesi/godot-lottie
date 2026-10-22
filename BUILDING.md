@@ -1,5 +1,11 @@
 # Building the Lottie GDExtension — All Platforms
 
+Dependency baseline: ThorVG `v1.0.3`, godot-cpp `10.0.0-stable`, and Godot 4.7 API
+(`api_version=4.7` is the SConstruct default). Rebuild binaries after updating submodules.
+OpenMP is enabled for Linux, Windows/MSVC and Android/NDK, and disabled for
+macOS, iOS and Web. Android links the OpenMP runtime statically; Windows
+requires the MSVC OpenMP runtime. The `threads` option is independent.
+
 Complete build instructions for every platform this extension targets. Covers
 toolchain setup, ThorVG compilation, the SCons extension build, and output
 verification.
@@ -16,10 +22,10 @@ The `.gdextension` file declares output paths for all of these:
 | Platform | Architectures | ThorVG output | Extension output |
 |---|---|---|---|
 | Windows | `x86_64` (✅), `x86_32` (📋) | `thorvg-1.dll` (shared) | `.dll` |
-| Linux | `x86_64`, `arm64` (📋) | `libthorvg.a` (static) | `.so` |
-| macOS | Universal (`x86_64`+`arm64`) (📋) | `libthorvg.a` (static) | `.framework` |
-| Android | `arm64` (✅), `x86_64` (✅) | `libthorvg.a` (static, cross-compiled) | `.so` |
-| **iOS** | **device `arm64`, simulator `arm64` + `x86_64` (📋)** | `libthorvg.a` (static, cross-compiled) | `.xcframework` |
+| Linux | `x86_64`, `arm64` (📋) | `libthorvg-1.a` (static) | `.so` |
+| macOS | Universal (`x86_64`+`arm64`) (📋) | `libthorvg-1.a` (static) | `.framework` |
+| Android | `arm64` (✅), `x86_64` (✅) | `libthorvg-1.a` (static, cross-compiled) | `.so` |
+| **iOS** | **device `arm64`, simulator `arm64` + `x86_64` (📋)** | `libthorvg-1.a` (static, cross-compiled) | `.xcframework` |
 | Web | `wasm32` nothreads (📋) | static (`build_wasm/`) | `.wasm` |
 
 ---
@@ -84,7 +90,7 @@ if exist builddir rmdir /s /q builddir
 meson setup builddir ^
   -Dbuildtype=release -Doptimization=3 -Db_ndebug=true ^
   -Dsimd=true -Dthreads=true -Dpartial=true ^
-  -Dengines=sw -Dloaders=lottie -Dbindings=capi -Dexamples=false ^
+  -Dengines=sw -Dloaders=lottie -Dextra=lottie_exp,openmp -Dbindings=capi ^
   --backend=ninja
 meson compile -C builddir
 ```
@@ -92,7 +98,7 @@ meson compile -C builddir
 Save as `_build_thorvg_msvc.bat` next to `SConstruct`, double-click (or run
 from `cmd.exe`). Build time: ~2–5 min on a modern laptop.
 
-Output: `thirdparty/thorvg/builddir/src/thorvg-1.dll`, `thorvg.lib`, `thorvg.exp`.
+Output: `thirdparty/thorvg/builddir/src/thorvg-1.dll`, `thorvg-1.lib`, `thorvg.exp`.
 
 ### 1.3 Build the extension
 
@@ -154,7 +160,7 @@ chmod +x build_thorvg.sh
 ```
 
 The script invokes meson with `-Ddefault_library=static`, so the output is
-`thirdparty/thorvg/builddir/src/libthorvg.a` (statically linked into the
+`thirdparty/thorvg/builddir/src/libthorvg-1.a` (statically linked into the
 extension `.so`).
 
 ### 2.3 Build the extension
@@ -202,7 +208,7 @@ meson setup builddir_arm64 \
   --cross-file cross-arm64.ini \
   -Dbuildtype=release -Ddefault_library=static \
   -Dsimd=true -Dthreads=true -Dpartial=true \
-  -Dengines=sw -Dloaders=lottie -Dbindings=capi -Dexamples=false
+  -Dengines=sw -Dloaders=lottie -Dextra=lottie_exp,openmp -Dbindings=capi
 meson compile -C builddir_arm64
 ```
 
@@ -237,7 +243,7 @@ can either run the script twice (once per arch with a meson cross-file) and
 `lipo` them together, or just build for the host arch you're on:
 
 ```bash
-./build_thorvg.sh   # produces libthorvg.a for the host arch (x86_64 or arm64)
+./build_thorvg.sh   # produces libthorvg-1.a for the host arch (x86_64 or arm64)
 ```
 
 For a true Universal binary that runs on both Intel and Apple Silicon:
@@ -248,19 +254,19 @@ cd thirdparty/thorvg
 meson setup builddir_arm64 \
   --cross-file <path-to-arm64-cross.ini> \
   -Dbuildtype=release -Ddefault_library=static -Dsimd=true -Dthreads=false \
-  -Dpartial=true -Dengines=sw -Dloaders=lottie -Dbindings=capi -Dexamples=false
+  -Dpartial=true -Dengines=sw -Dloaders=lottie -Dextra=lottie_exp -Dbindings=capi
 meson compile -C builddir_arm64
 
 # x86_64 build
 meson setup builddir_x86_64 \
   --cross-file <path-to-x86_64-cross.ini> \
   -Dbuildtype=release -Ddefault_library=static -Dsimd=true -Dthreads=true \
-  -Dpartial=true -Dengines=sw -Dloaders=lottie -Dbindings=capi -Dexamples=false
+  -Dpartial=true -Dengines=sw -Dloaders=lottie -Dextra=lottie_exp -Dbindings=capi
 meson compile -C builddir_x86_64
 
 # Combine
-lipo -create builddir_arm64/src/libthorvg.a builddir_x86_64/src/libthorvg.a \
-     -output builddir/src/libthorvg.a
+lipo -create builddir_arm64/src/libthorvg-1.a builddir_x86_64/src/libthorvg-1.a \
+     -output builddir/src/libthorvg-1.a
 ```
 
 ### 3.3 Build the extension
@@ -296,7 +302,7 @@ target variants (`arm64`, `x86_64` × `template_debug`, `template_release`)
 build cleanly and contain the `LottieAnimation3D` symbols.
 
 Android is always cross-compiled. You need:
-- One ThorVG static library per ABI (`libthorvg.a`)
+- One ThorVG static library per ABI (`libthorvg-1.a`)
 - One extension `.so` per ABI per target
 
 ### 4.1 Install Android NDK
@@ -373,8 +379,8 @@ ABIS=arm64 ./build_thorvg_android.sh        # Linux/macOS
 set "ABIS=arm64" & build_thorvg_android.bat  REM Windows
 ```
 
-Each `libthorvg.a` is ~2 MB and lands at
-`thirdparty/thorvg/builddir_android_<abi>/src/libthorvg.a`.
+Each `libthorvg-1.a` is ~2 MB and lands at
+`thirdparty/thorvg/builddir_android_<abi>/src/libthorvg-1.a`.
 
 > **Important — Android requires `-Dthreads=false`.** ThorVG's threaded task
 > scheduler interacts badly with the Android pthread runtime in some
@@ -394,8 +400,8 @@ meson setup builddir_android_arm64 \
   -Dbuildtype=release -Doptimization=3 -Db_ndebug=true \
   -Ddefault_library=static \
   -Dsimd=true -Dthreads=false -Dpartial=true \
-  -Dengines=sw -Dloaders=lottie -Dbindings=capi \
-  -Dexamples=false -Dtests=false \
+  -Dengines=sw -Dloaders=lottie -Dextra=lottie_exp,openmp -Dbindings=capi \
+  -Dtests=false \
   --backend=ninja
 meson compile -C builddir_android_arm64
 ```
@@ -541,10 +547,10 @@ brew install meson ninja
 ### 5.2 Build ThorVG for iOS (device + simulator)
 
 ```bash
-# Builds three static libthorvg.a -- one per (arch, sdk) combination:
-#   thirdparty/thorvg/builddir_ios-arm64/src/libthorvg.a              (device)
-#   thirdparty/thorvg/builddir_ios-arm64-simulator/src/libthorvg.a    (Apple Silicon sim)
-#   thirdparty/thorvg/builddir_ios-x86_64-simulator/src/libthorvg.a   (Intel Mac sim)
+# Builds three static libthorvg-1.a -- one per (arch, sdk) combination:
+#   thirdparty/thorvg/builddir_ios-arm64/src/libthorvg-1.a              (device)
+#   thirdparty/thorvg/builddir_ios-arm64-simulator/src/libthorvg-1.a    (Apple Silicon sim)
+#   thirdparty/thorvg/builddir_ios-x86_64-simulator/src/libthorvg-1.a   (Intel Mac sim)
 chmod +x build_thorvg_ios.sh
 ./build_thorvg_ios.sh
 ```
@@ -687,7 +693,7 @@ meson setup build_wasm \
   --cross-file cross-emscripten.ini \
   -Dbuildtype=release -Ddefault_library=static -Db_ndebug=true \
   -Dsimd=false -Dthreads=false -Dpartial=true \
-  -Dengines=sw -Dloaders=lottie -Dbindings=capi -Dexamples=false
+  -Dengines=sw -Dloaders=lottie -Dextra=lottie_exp -Dbindings=capi
 meson compile -C build_wasm
 ```
 
@@ -769,7 +775,7 @@ Godot picks the right `.dll` / `.so` / `.framework` / `.wasm` per the
 | `meson: command not found` | `python -m pip install --user meson ninja`, then add user `Scripts` to `PATH`. |
 | `cl is not recognized` (Windows) | Build wasn't started inside a `vcvars64`-initialised shell. Run from the helper batch file shown in §1.2. |
 | `Error: ThorVG build directory not found: thirdparty/thorvg/builddir` | ThorVG hasn't been built yet, or you built it into a different directory (e.g. `build_wasm`, `builddir_arm64`). For non-Web targets the SConstruct currently expects `builddir`; swap your per-arch directories accordingly. |
-| Linker error: `unresolved external symbol _tvg_...` | ThorVG was built with `-Dbindings=capi=false`. Rebuild with `-Dbindings=capi`. |
+| Linker error: `unresolved external symbol _tvg_...` | For C API users, enable bindings with `-Dbindings=capi`. This extension uses the C++ API. |
 | Godot loads the addon but `LottieAnimation3D` isn't in *Create New Node* | DLL is older than your sources. Force a clean SCons build (`python -m SCons -c` to clean, then rebuild) and restart the editor. |
 | Web export shows `RuntimeError: Aborted(...)` on load | ThorVG was built with `-Dthreads=true` for WASM. Web build must use `-Dthreads=false` and the Emscripten flag `-pthread=false`. |
 | Android: `libgodot_lottie.so` missing | Wrong ABI built or wrong `arch=` flag. Each Android ABI needs its own ThorVG + extension build (§4.3). |

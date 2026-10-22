@@ -14,10 +14,10 @@
 #   VARIANTS -- space-separated subset of {device sim-arm64 sim-x86_64}
 #               (default builds all three)
 #
-# Outputs static libthorvg.a per variant:
-#   thirdparty/thorvg/builddir_ios-arm64/src/libthorvg.a
-#   thirdparty/thorvg/builddir_ios-arm64-simulator/src/libthorvg.a
-#   thirdparty/thorvg/builddir_ios-x86_64-simulator/src/libthorvg.a
+# Outputs static libthorvg-1.a per variant:
+#   thirdparty/thorvg/builddir_ios-arm64/src/libthorvg-1.a
+#   thirdparty/thorvg/builddir_ios-arm64-simulator/src/libthorvg-1.a
+#   thirdparty/thorvg/builddir_ios-x86_64-simulator/src/libthorvg-1.a
 
 set -e
 
@@ -121,8 +121,8 @@ EOF
             -Dbuildtype=release -Doptimization=3 -Db_ndebug=true \
             -Ddefault_library=static \
             -Dsimd=true -Dthreads=false -Dpartial=true \
-            -Dengines=sw -Dloaders=lottie -Dbindings=capi \
-            -Dexamples=false -Dtests=false \
+            -Dengines=sw -Dloaders=lottie -Dextra=lottie_exp -Dbindings=capi \
+            -Dtests=false \
             --backend=ninja && \
         $MESON compile -C "$BUILDDIR_NAME")
 }
@@ -157,7 +157,7 @@ for v in $VARIANTS; do
         sim-arm64)   DIR="$THORVG_DIR/builddir_ios-arm64-simulator" ;;
         sim-x86_64)  DIR="$THORVG_DIR/builddir_ios-x86_64-simulator" ;;
     esac
-    LIB="$DIR/src/libthorvg.a"
+    LIB="$DIR/src/libthorvg-1.a"
     if [ -f "$LIB" ]; then
         echo "  $v: $LIB ($(du -h "$LIB" | cut -f1))"
     else

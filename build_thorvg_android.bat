@@ -10,8 +10,8 @@ REM   API     -- Android API level (default 24, the Godot 4.3+ minimum)
 REM   ABIS    -- space-separated list (default "arm64 x86_64")
 REM
 REM Outputs:
-REM   thirdparty\thorvg\builddir_android_arm64\src\libthorvg.a
-REM   thirdparty\thorvg\builddir_android_x86_64\src\libthorvg.a
+REM   thirdparty\thorvg\builddir_android_arm64\src\libthorvg-1.a
+REM   thirdparty\thorvg\builddir_android_x86_64\src\libthorvg-1.a
 
 setlocal enableextensions
 
@@ -93,9 +93,9 @@ for %%A in (%ABIS%) do (
 echo.
 echo === ThorVG Android build complete ===
 for %%A in (%ABIS%) do (
-    set "LIB=%THORVG_DIR%\builddir_android_%%A\src\libthorvg.a"
-    if exist "%THORVG_DIR%\builddir_android_%%A\src\libthorvg.a" (
-        echo   %%A: %THORVG_DIR%\builddir_android_%%A\src\libthorvg.a
+    set "LIB=%THORVG_DIR%\builddir_android_%%A\src\libthorvg-1.a"
+    if exist "%THORVG_DIR%\builddir_android_%%A\src\libthorvg-1.a" (
+        echo   %%A: %THORVG_DIR%\builddir_android_%%A\src\libthorvg-1.a
     ) else (
         echo   %%A: MISSING
     )
@@ -160,15 +160,15 @@ REM specific to the Windows-prebuilt NDK toolchain.
 REM NOTE: -Dthreads=false on Android. ThorVG's threaded task scheduler
 REM interacts badly with the Android pthread runtime in some versions and
 REM causes hangs / crashes when the extension is loaded inside a Godot
-REM Android app. Without threads ThorVG renders single-threaded but stably.
+REM Android app. This disables task scheduling; OpenMP is independent.
 pushd "%THORVG_DIR%"
 %MESON% setup "%BUILDDIR_NAME%" ^
     --cross-file "%CROSSFILE%" ^
     -Dbuildtype=release -Doptimization=3 -Db_ndebug=true ^
     -Ddefault_library=static ^
     -Dsimd=true -Dthreads=false -Dpartial=true ^
-    -Dengines=sw -Dloaders=lottie -Dbindings=capi ^
-    -Dexamples=false -Dtests=false ^
+    -Dengines=sw -Dloaders=lottie -Dextra=lottie_exp,openmp -Dbindings=capi ^
+    -Dtests=false ^
     --backend=ninja
 if errorlevel 1 (
     popd

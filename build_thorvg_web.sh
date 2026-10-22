@@ -12,7 +12,7 @@
 #   ./build_thorvg_web.sh
 #
 # Output:
-#   thirdparty/thorvg/build_wasm/src/libthorvg.a
+#   thirdparty/thorvg/build_wasm/src/libthorvg-1.a
 
 set -e
 
@@ -82,8 +82,7 @@ $MESON setup "$BUILD_DIR" \
     -Dpartial=true \
     -Dengines=sw \
     -Dloaders=lottie \
-    -Dbindings=capi \
-    -Dexamples=false \
+    -Dextra=lottie_exp -Dbindings=capi \
     -Dtests=false \
     --backend=ninja \
     --wipe
@@ -95,5 +94,5 @@ $MESON compile -C "$BUILD_DIR" -j"$(nproc 2>/dev/null || echo 4)"
 echo
 echo "========================================"
 echo "ThorVG WASM build complete!"
-echo "Output: $BUILD_DIR/src/libthorvg.a"
+echo "Output: $BUILD_DIR/src/libthorvg-1.a"
 echo "========================================"

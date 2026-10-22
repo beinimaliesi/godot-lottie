@@ -1,6 +1,6 @@
 # unofficial Lottie-godot plugin
 
-High-performance Lottie animation rendering for Godot Engine 4.3+ using optimized ThorVG backend.
+High-performance Lottie animation rendering for Godot Engine 4.7+ using optimized ThorVG backend.
 
 ![ThorVG Godot Demo](thor-lottie.gif)
 
@@ -21,18 +21,25 @@ Note: this is an integration demo for personal use, so features may fail/be inco
 
 ## Quick Demo
 
-**Want to test without building?** The `demo/` folder contains a ready-to-run Godot project with **pre-built binaries for Windows x64**:
+The `demo/` folder contains a Godot project. Rebuild the extension for your platform with the pinned dependencies before running it:
 
-1. Open `demo/project.godot` in Godot Engine 4.3+
+1. Open `demo/project.godot` in Godot Engine 4.7+
 2. **Enable the plugin**: Go to Project → Project Settings → Plugins and enable "Godot Lottie"
-3. Run immediately - no compilation required!
+3. Run the project after building the extension.
 4. Test multiple Lottie animations and performance demos
 
-> **Note**: For Linux and macOS, you'll need to build the extension first (see Installation section below).
+> See the Installation section below for build instructions.
+
+## Dependency versions
+
+- ThorVG: `v1.0.3` (pinned submodule).
+- godot-cpp: `10.0.0-stable` (pinned submodule), targeting the Godot **4.7** API via `SConstruct`.
+- The 3D node uses `lottie_frame_changed(frame)` to avoid `Sprite3D.frame_changed()`; the 2D node keeps `frame_changed(frame)`.
+- Rebuild extension binaries after updating submodules; older prebuilt binaries do not represent these dependency versions.
 
 ## Prerequisites
 
-- **Python 3.7+** with pip
+- **Python 3.8+** with pip
 - **Git**
 - **C++ Compiler**:
   - Windows: Visual Studio 2019+ or Build Tools
@@ -85,7 +92,7 @@ If you prefer to build ThorVG manually with custom options.
 **Windows:**
 ```bash
 cd thirdparty/thorvg
-python -m meson setup builddir -Dbuildtype=release -Dsimd=true -Dthreads=true -Dloaders=lottie -Dbindings=capi
+python -m meson setup builddir -Dbuildtype=release -Dsimd=true -Dthreads=true -Dloaders=lottie -Dextra=lottie_exp,openmp -Dbindings=capi
 python -m meson compile -C builddir
 cd ../..
 ```
@@ -93,7 +100,9 @@ cd ../..
 **Linux/macOS:**
 ```bash
 cd thirdparty/thorvg
-python3 -m meson setup builddir -Dbuildtype=release -Ddefault_library=static -Dsimd=true -Dthreads=true -Dloaders=lottie -Dbindings=capi
+THORVG_EXTRA=lottie_exp,openmp
+[ "$(uname)" = Darwin ] && THORVG_EXTRA=lottie_exp
+python3 -m meson setup builddir -Dbuildtype=release -Ddefault_library=static -Dsimd=true -Dthreads=true -Dloaders=lottie -Dextra="$THORVG_EXTRA" -Dbindings=capi
 python3 -m meson compile -C builddir
 cd ../..
 ```
@@ -103,12 +112,16 @@ cd ../..
 The automated scripts already include optimal settings. For manual builds, you can customize with these flags:
 
 - `-Dengines=sw` — Software renderer only (already enabled)
-- `-Dbindings=capi` — C API bindings (required, already enabled)
-- `-Ddefault_library=static` — Static library build (Linux/macOS default)
-- `-Ddefault_library=shared` — Shared library build (Windows default)
-- `-Dtests=false` — Disable tests and examples
+- `-Dbindings=capi` — Build C API bindings
+- `-Dextra=lottie_exp` — Lottie expressions without OpenMP (macOS, iOS, Web)
+- `-Dextra=lottie_exp,openmp` — Lottie expressions with OpenMP (Linux, Windows/MSVC, Android/NDK)
+- `-Ddefault_library=static` — Static library build (all build scripts)
+- `-Ddefault_library=shared` — Shared library build (manual builds only)
+- `-Dtests=false` — Disable unit tests
 - `-Dpartial=true` — Enable partial rendering optimizations (already enabled)
 - `-Doptimization=3` — Maximum optimization level (already enabled)
+
+OpenMP is independent of the `threads` task-scheduler option. Linux links its OpenMP runtime with `-fopenmp`; Android links the NDK runtime statically. Windows uses the MSVC OpenMP runtime. When using the manual commands below on Linux or Windows, select `-Dextra=lottie_exp,openmp`.
 
 **Example custom build:**
 
@@ -124,7 +137,7 @@ python3 -m meson setup builddir \
     -Dsimd=true \
     -Dthreads=true \
     -Dloaders=lottie \
-    -Dbindings=capi
+    -Dextra=lottie_exp -Dbindings=capi
 
 # Step 2: Compile the library
 python3 -m meson compile -C builddir
@@ -181,8 +194,8 @@ This approach leverages ThorVG's optimized CPU vector processing while maintaini
 | Platform | Architecture | ThorVG Library | Compiler | Status |
 |----------|-------------|----------------|----------|---------|
 | Windows  | x86_64      | thorvg-1.dll (shared) | MSVC | ✓ Tested |
-| Linux    | x86_64      | libthorvg.a (static) | GCC/Clang| ⚠ Needs testing |
-| macOS    | x86_64/ARM64| libthorvg.a (static) | Clang | ⚠ Needs testing |
+| Linux    | x86_64      | libthorvg-1.a (static) | GCC/Clang| ⚠ Needs testing |
+| macOS    | x86_64/ARM64| libthorvg-1.a (static) | Clang | ⚠ Needs testing |
 
 ## Project Structure
 

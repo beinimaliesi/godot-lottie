@@ -11,8 +11,8 @@
 #   ABIS    -- space-separated list to build (default "arm64 x86_64")
 #
 # Outputs:
-#   thirdparty/thorvg/builddir_android_arm64/src/libthorvg.a
-#   thirdparty/thorvg/builddir_android_x86_64/src/libthorvg.a
+#   thirdparty/thorvg/builddir_android_arm64/src/libthorvg-1.a
+#   thirdparty/thorvg/builddir_android_x86_64/src/libthorvg-1.a
 
 set -e
 
@@ -126,18 +126,15 @@ cpu = '$CPU_FAMILY'
 endian = 'little'
 EOF
 
-    # -Dthreads=true: enable ThorVG's task scheduler (uses OpenMP internally).
-    # OpenMP is statically linked into the extension via -static-openmp in
-    # SConstruct, so no libomp.so needs to be bundled at runtime.
-    # Android NDK r21+ ships Clang with OpenMP support out of the box.
+    # Enable OpenMP with the NDK; SConstruct statically links its runtime.
     (cd "$THORVG_DIR" && \
         $MESON setup "$BUILDDIR_NAME" \
             --cross-file "$CROSSFILE" \
             -Dbuildtype=release -Doptimization=3 -Db_ndebug=true \
             -Ddefault_library=static \
             -Dsimd=true -Dthreads=true -Dpartial=true \
-            -Dengines=sw -Dloaders=lottie -Dbindings=capi \
-            -Dexamples=false -Dtests=false \
+            -Dengines=sw -Dloaders=lottie -Dextra=lottie_exp,openmp -Dbindings=capi \
+            -Dtests=false \
             --backend=ninja && \
         $MESON compile -C "$BUILDDIR_NAME")
 }
@@ -162,7 +159,7 @@ done
 echo
 echo "=== ThorVG Android build complete ==="
 for abi in $ABIS; do
-    LIB="$THORVG_DIR/builddir_android_$abi/src/libthorvg.a"
+    LIB="$THORVG_DIR/builddir_android_$abi/src/libthorvg-1.a"
     if [ -f "$LIB" ]; then
         echo "  $abi: $LIB ($(du -h "$LIB" | cut -f1))"
     else

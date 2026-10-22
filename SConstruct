@@ -9,15 +9,13 @@ import os
 import sys
 import shutil
 
-env = SConscript("thirdparty/godot-cpp/SConstruct")
+env = SConscript("thirdparty/godot-cpp/SConstruct", {"api_version": "4.7"})
 
-# Linux: enable OpenMP for ThorVG's threading support
-# ThorVG is built with -Dthreads=true which uses OpenMP for parallel rendering
-# Add here (after godot-cpp import) to avoid affecting godot-cpp's build
+# ThorVG software-rendering loops use OpenMP on Linux.
+# This is independent of ThorVG's std::thread task scheduler.
 if env["platform"] == "linux":
     env.Append(CCFLAGS=["-fopenmp"])
     env.Append(LINKFLAGS=["-fopenmp"])
-
 
 # Source files
 env.Append(CPPPATH=["src/"])
@@ -27,7 +25,7 @@ sources = Glob("src/*.cpp")
 env.Append(CPPPATH=["thirdparty/thorvg/inc"])
 # TVG_STATIC tells thorvg.h to skip the __declspec(dllimport) decoration on
 # its public API symbols, which is required when linking against the static
-# libthorvg.a / thorvg.lib (otherwise MSVC emits LNK4217 and refuses to
+# libthorvg-1.a / thorvg-1.lib (otherwise MSVC emits LNK4217 and refuses to
 # link). Safe on non-Windows -- on Linux/macOS it just makes TVG_API empty,
 # which is what those builds already use.
 env.Append(CPPDEFINES=["TVG_STATIC"])
@@ -35,7 +33,8 @@ env.Append(CPPDEFINES=["TVG_STATIC"])
 # Android: statically link libc++ into the extension so the .so does not
 # require libc++_shared.so to be present alongside it at runtime.
 if env["platform"] == "android":
-    env.Append(LINKFLAGS=["-static-libstdc++"])
+    # The NDK provides OpenMP; link its runtime statically for Android.
+    env.Append(LINKFLAGS=["-static-libstdc++", "-fopenmp", "-static-openmp"])
 
 
 # Determine ThorVG library location and linking method.
@@ -66,25 +65,25 @@ if os.path.exists(thorvg_lib_dir):
     # Platform-specific library files
     platform_libs = {
         "windows": [
-            ("thorvg.lib", lambda: env.Append(LIBS=["thorvg"])),
-            ("libthorvg.a", lambda: env.Append(LINKFLAGS=[os.path.join(thorvg_lib_dir, "libthorvg.a")]))
+            ("thorvg-1.lib", lambda: env.Append(LIBS=["thorvg-1"])),
+            ("libthorvg-1.a", lambda: env.Append(LINKFLAGS=[os.path.join(thorvg_lib_dir, "libthorvg-1.a")]))
         ],
         "linux": [
-            ("libthorvg.a", lambda: env.Append(LIBS=["thorvg"])),
-            ("libthorvg.so", lambda: env.Append(LIBS=["thorvg"]))
+            ("libthorvg-1.a", lambda: env.Append(LIBS=["thorvg-1"])),
+            ("libthorvg-1.so", lambda: env.Append(LIBS=["thorvg-1"]))
         ],
         "macos": [
-            ("libthorvg.a", lambda: env.Append(LIBS=["thorvg"])),
-            ("libthorvg.dylib", lambda: env.Append(LIBS=["thorvg"]))
+            ("libthorvg-1.a", lambda: env.Append(LIBS=["thorvg-1"])),
+            ("libthorvg-1.dylib", lambda: env.Append(LIBS=["thorvg-1"]))
         ],
         "android": [
-            ("libthorvg.a", lambda: env.Append(LIBS=["thorvg"]))
+            ("libthorvg-1.a", lambda: env.Append(LIBS=["thorvg-1"]))
         ],
         "ios": [
-            ("libthorvg.a", lambda: env.Append(LIBS=["thorvg"]))
+            ("libthorvg-1.a", lambda: env.Append(LIBS=["thorvg-1"]))
         ],
         "web": [
-            ("libthorvg.a", lambda: env.Append(LIBS=["thorvg"]))
+            ("libthorvg-1.a", lambda: env.Append(LIBS=["thorvg-1"]))
         ]
     }
     
