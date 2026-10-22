@@ -9,6 +9,20 @@ import os
 import sys
 import shutil
 
+if ARGUMENTS.get("platform") == "web":
+    import runpy
+
+    try:
+        emscripten_version = runpy.run_path("scripts/emscripten.py")["validate_emscripten"]()
+    except RuntimeError as error:
+        print(error)
+        Exit(1)
+    # ThorVG and the distributed Web extension are built without threads.
+    if ARGUMENTS.get("threads", "no").lower() not in ("no", "false", "0"):
+        print("Web builds require threads=no to match ThorVG and the .gdextension entries.")
+        Exit(1)
+    ARGUMENTS["threads"] = "no"
+
 # 统一 ThorVG 与 godot-cpp 的 NDK，避免 ANDROID_HOME 覆盖 CI 指定的路径。
 if ARGUMENTS.get("platform") == "android":
     import runpy
@@ -63,6 +77,10 @@ if env["platform"] == "android":
 # Native desktop builds use the canonical `builddir`.
 if env["platform"] == "web":
     thorvg_lib_dir = os.path.join("thirdparty", "thorvg", "build_wasm", "src")
+    version_stamp = os.path.join(thorvg_lib_dir, "..", ".emscripten-version")
+    if not os.path.isfile(version_stamp) or open(version_stamp).read().strip() != emscripten_version:
+        print("Rebuild ThorVG with the pinned Emscripten: run ./build_thorvg_web.sh")
+        Exit(1)
 elif env["platform"] == "macos" and env["arch"] == "universal":
     thorvg_lib_dir = os.path.join("thirdparty", "thorvg", "builddir_macos-universal", "src")
     if not os.path.isfile(os.path.join(thorvg_lib_dir, "libthorvg-1.a")):

@@ -4,7 +4,7 @@
 # Builds ThorVG as a static library for Godot's Web (Emscripten/WASM) export.
 #
 # Requirements:
-#   - Emscripten SDK activated (source emsdk_env.sh)
+#   - Repository-pinned Emscripten SDK activated (source emsdk_env.sh)
 #   - meson and ninja installed
 #
 # Usage:
@@ -22,13 +22,8 @@ echo "========================================"
 echo "Building ThorVG for Web (WASM)"
 echo "========================================"
 
-# Verify Emscripten is active
-if ! command -v emcc >/dev/null 2>&1; then
-    echo "ERROR: emcc not found. Activate Emscripten first:"
-    echo "  source /path/to/emsdk/emsdk_env.sh"
-    exit 1
-fi
-echo "Emscripten: $(emcc --version | head -1)"
+EMSCRIPTEN_VERSION="$(python3 "$SCRIPT_DIR/scripts/emscripten.py")"
+echo "Emscripten: $EMSCRIPTEN_VERSION"
 
 # Resolve meson
 if command -v meson >/dev/null 2>&1; then
@@ -90,6 +85,7 @@ $MESON setup "$BUILD_DIR" \
 echo
 echo "Building ThorVG WASM..."
 $MESON compile -C "$BUILD_DIR" -j"$(nproc 2>/dev/null || echo 4)"
+printf '%s\n' "$EMSCRIPTEN_VERSION" > "$BUILD_DIR/.emscripten-version"
 
 echo
 echo "========================================"

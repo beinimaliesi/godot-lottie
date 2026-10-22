@@ -607,8 +607,8 @@ find the right SDK at SCons-time.
 ```bash
 git clone https://github.com/emscripten-core/emsdk.git
 cd emsdk
-./emsdk install latest
-./emsdk activate latest
+./emsdk install 4.0.11
+./emsdk activate 4.0.11
 source ./emsdk_env.sh        # Linux/macOS
 # Windows: emsdk_env.bat
 ```
@@ -617,64 +617,36 @@ Verify:
 
 ```bash
 emcc --version
-# emcc (Emscripten gcc/clang-like replacement) 3.x.x
+# Expected version: 4.0.11
 ```
 
-Godot 4.3+ Web exports use **wasm32 + no threads** (the SharedArrayBuffer
-COOP/COEP requirement is a pain), which matches the `.gdextension` entry
-(`web.template_release.wasm32.nothreads.wasm`).
+This repository pins Emscripten to **4.0.11** in `.emscripten-version`.
+CI and local builds use the same version. Both `emcc` and `em++` are
+checked before building; mismatched versions fail immediately.
+Use the matching toolchain when building custom Godot Web export templates.
+
+Web artifacts use **wasm32 + no threads**, matching the `.gdextension` entries.
 
 ### 6.2 Build ThorVG for WASM
 
-ThorVG ships an `emscripten` cross-file template; copy / adapt it. Sample
-`thirdparty/thorvg/cross-emscripten.ini`:
-
-```ini
-[binaries]
-c = 'emcc'
-cpp = 'em++'
-ar = 'emar'
-strip = 'emstrip'
-pkg-config = 'false'
-
-[host_machine]
-system = 'emscripten'
-cpu_family = 'wasm32'
-cpu = 'wasm32'
-endian = 'little'
-
-[built-in options]
-c_args     = ['-pthread=false']
-cpp_args   = ['-pthread=false', '-DTHORVG_THREAD_SUPPORT=0']
-c_link_args   = ['-pthread=false']
-cpp_link_args = ['-pthread=false']
-```
-
-Build:
+From the repository root, with Emscripten activated and Meson/Ninja installed:
 
 ```bash
-cd thirdparty/thorvg
-meson setup build_wasm \
-  --cross-file cross-emscripten.ini \
-  -Dbuildtype=release -Ddefault_library=static -Db_ndebug=true \
-  -Dsimd=false -Dthreads=false -Dpartial=true \
-  -Dengines=sw -Dloaders=lottie,png -Dstatic=true -Dextra=lottie_exp -Dbindings=capi
-meson compile -C build_wasm
+./build_thorvg_web.sh
 ```
 
-Note the output directory is **`build_wasm`** (not `builddir`) — that's what
-the SConstruct's Web branch expects:
-
-```python
-if env["platform"] == "web":
-    thorvg_lib_dir = os.path.join("thirdparty", "thorvg", "build_wasm", "src")
-```
+The script generates the Meson cross-file and rebuilds ThorVG with software
+rendering, Lottie/PNG loaders and threads disabled. Output:
+`thirdparty/thorvg/build_wasm/src/libthorvg-1.a`.
+It records the compiler version after a successful build; SCons rejects
+ThorVG builds with a missing or mismatched version stamp. Re-run this script
+when migrating existing builds to the pinned toolchain.
 
 ### 6.3 Build the extension for Web
 
 ```bash
-python3 -m SCons platform=web target=template_debug   -j$(nproc)
-python3 -m SCons platform=web target=template_release -j$(nproc)
+python3 -m SCons platform=web target=template_debug arch=wasm32 threads=no -j4
+python3 -m SCons platform=web target=template_release arch=wasm32 threads=no -j4
 ```
 
 SCons will pick up `emcc` from PATH (which `emsdk_env.sh` put there).
