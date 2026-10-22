@@ -7,9 +7,11 @@ demo/.godot/
 *.os
 *.exp
 *.lib
+# Distribute Windows import libraries alongside DLLs.
+!/demo/addons/godot_lottie/bin/windows/*.lib
 *.pdb
 *.TMP
-demo/addons/godot_lottie/bin/~*.TMP
+demo/addons/godot_lottie/bin/**/~*.TMP
 
 # Build artifacts gerais
 .sconsign.dblite
@@ -62,3 +64,6 @@ desktop.ini
 
 # IMPORTANTE: NÃO ignorar as DLLs do addon (para distribuição)
 # As DLLs em demo/addons/godot_lottie/bin/ devem ser commitadas!
+
+# Local build intermediates
+/build/

@@ -166,6 +166,32 @@ python -m SCons platform=macos target=template_release
 
 > **Note**: On Windows, the build automatically copies `thorvg-1.dll` to the addon's bin directory. Linux and macOS use static linking and don't require runtime libraries.
 
+### iOS
+
+On macOS with full Xcode, Meson, Ninja, and SCons installed:
+
+```bash
+./build_thorvg_ios.sh
+./build_extension_ios.sh
+```
+
+This builds Debug and Release XCFrameworks in `demo/addons/godot_lottie/bin/ios/`,
+with arm64 device and arm64/x86_64 simulator slices. Each slice is a linked
+`.dylib` containing the required godot-cpp and ThorVG code, rather than a
+combined archive of all dependency objects. Intermediates stay in `build/ios/`.
+The existing `.gdextension` paths remain valid.
+
+Both scripts default to iOS 12.0; set the same `MIN_IOS` for both to override it.
+Use `TARGETS=template_release` for only Release, or `VARIANTS=device` for only
+the device slice. Each rebuilt XCFramework contains only the selected variants;
+run without `VARIANTS` to restore all slices. `JOBS` controls extension build
+parallelism (default 8). Export the project to iOS in Godot, then build and run
+it in Xcode to verify embedding, signing, and animation playback on a device.
+
+Extension binaries are organized under `demo/addons/godot_lottie/bin/<platform>/`
+(`ios`, `android`, `macos`, `windows`, `web`, or `linux`). Copy the directory
+structure together with the `.gdextension` file when installing the addon.
+
 ## Build Configuration
 
 ### ThorVG Optimizations

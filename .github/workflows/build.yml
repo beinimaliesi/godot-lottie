@@ -83,8 +83,8 @@ jobs:
         with:
           name: windows-x86_64
           path: |
-            demo/addons/godot_lottie/bin/libgodot_lottie.windows.template_*.x86_64.dll
-            demo/addons/godot_lottie/bin/libgodot_lottie.windows.template_*.x86_64.lib
+            demo/addons/godot_lottie/bin/*/libgodot_lottie.windows.template_*.x86_64.dll
+            demo/addons/godot_lottie/bin/*/libgodot_lottie.windows.template_*.x86_64.lib
 
   # ----------------------------------------------------------------------
   linux-latest:
@@ -119,7 +119,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: linux-x86_64-latest
-          path: demo/addons/godot_lottie/bin/libgodot_lottie.linux.template_*.x86_64.so
+          path: demo/addons/godot_lottie/bin/*/libgodot_lottie.linux.template_*.x86_64.so
 
   # Linux build for older systems (Ubuntu 20.04 = GLIBC 2.31)
   linux-compat:
@@ -154,7 +154,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: linux-x86_64-compat
-          path: demo/addons/godot_lottie/bin/libgodot_lottie.linux.template_*.x86_64.so
+          path: demo/addons/godot_lottie/bin/*/libgodot_lottie.linux.template_*.x86_64.so
 
   # ----------------------------------------------------------------------
   macos:
@@ -190,7 +190,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: macos
-          path: demo/addons/godot_lottie/bin/libgodot_lottie.macos.template_*.framework/
+          path: demo/addons/godot_lottie/bin/*/libgodot_lottie.macos.template_*.framework/
 
   # ----------------------------------------------------------------------
   ios:
@@ -222,7 +222,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ios
-          path: demo/addons/godot_lottie/bin/libgodot_lottie.ios.template_*.xcframework/
+          path: demo/addons/godot_lottie/bin/*/libgodot_lottie.ios.template_*.xcframework/
 
   # ----------------------------------------------------------------------
   android:
@@ -276,7 +276,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: android
-          path: demo/addons/godot_lottie/bin/libgodot_lottie.android.template_*.so
+          path: demo/addons/godot_lottie/bin/*/libgodot_lottie.android.template_*.so
 
   # ----------------------------------------------------------------------
   web:
@@ -316,7 +316,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: web
-          path: demo/addons/godot_lottie/bin/libgodot_lottie.web.template_*.wasm32.nothreads.wasm
+          path: demo/addons/godot_lottie/bin/*/libgodot_lottie.web.template_*.wasm32.nothreads.wasm
 
   # ----------------------------------------------------------------------
   # Optional: auto-commit the freshly built artifacts back to main.
@@ -333,6 +333,7 @@ jobs:
           # Need full history + a write token for the push back.
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      # Upload paths use bin/*/ so artifacts retain their platform subdirectory.
       - name: Download all built artifacts
         uses: actions/download-artifact@v4
         with:
